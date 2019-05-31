@@ -1,5 +1,5 @@
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
-##EXAM REVIEW##
+##R CODE COVERING BASICS TO MACHILE LEARNING##
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
 
 ####DATA CLEANING AND STRUCTURING####
