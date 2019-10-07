@@ -1,0 +1,198 @@
+---
+title: "Linear Regression"
+author: "Ergeta Muca"
+date: "October 6, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Linear Regression in R
+
+To explain Linear Regression, let's first use the cars dataset. 
+
+```{r cars}
+
+#get familiar with the data
+
+summary(cars)
+head(cars)
+str(cars)
+```
+
+
+## Data visualization
+
+Let's build some visualizations to get an idea of the relationship between our variables:
+
+```{r pressure, echo=TRUE}
+#building a scatterplot
+
+scatter.smooth(x=cars$speed, y=cars$dist, main="Dist ~ Speed")
+
+```
+
+```{r}
+#checking for outliers- building boxplots
+
+par(mfrow=c(1, 2))  # divide graph area in 2 columns
+
+#box plot for speed
+boxplot(cars$speed, main="Speed", sub=paste("Outlier rows: ", boxplot.stats(cars$speed)$out)) 
+
+#box plot for dist
+boxplot(cars$dist, main="Distance", sub=paste("Outlier rows: ", boxplot.stats(cars$dist)$out))
+
+```
+
+```{r}
+#check the distribution of the data
+
+library(e1071)  # for skewness function
+par(mfrow=c(1, 2))  # divide graph area in 2 columns
+
+#speed density plot
+plot(density(cars$speed), main="Speed", ylab="Frequency", sub=paste("Skewness:", round(e1071::skewness(cars$speed), 2)))
+
+#dist density plot
+plot(density(cars$dist), main="Distance", ylab="Frequency", sub=paste("Skewness:", round(e1071::skewness(cars$dist), 2)))
+```
+
+##Correlation Analysis
+
+Correlation analysis studies the strength of relationship between two continuous variables. It involves computing the correlation coefficient between the the two variables.
+
+Correlation can take values between -1 to +1.
+
+If one variables consistently increases with increasing value of the other, then they have a strong positive correlation (value close to +1).
+
+Similarly, if one consistently decreases when the other increase, they have a strong negative correlation (value close to -1).
+
+A value closer to 0 suggests a weak relationship between the variables.
+
+
+```{r}
+#calculate correlation btwn speed and distance
+cor(cars$speed, cars$dist)
+```
+
+##Building the Linear Model
+
+```{r}
+#set up the linear model
+linear_model<- lm(dist~speed, data=cars)
+summary(linear_model)
+
+#coefficients lead to this formula:
+#dist = -17.5791 + 3.9324*speed
+
+```
+##P-Value
+We can consider a linear model to be statistically significant only when the p-Values are less than the pre-determined statistical significance level of 0.05.
+
+The more the stars beside the variable's p-Value, the more significant the variable.
+
+In Linear Regression, the Null Hypothesis (H0) is that the beta coefficients associated with the variables is equal to zero.
+
+The alternate hypothesis (H1) is that the coefficients are not equal to zero. (i.e. there exists a relationship between the independent variable in question and the dependent variable).
+
+##T-Value
+A larger t-value indicates that it is less likely that the coefficient is not equal to zero purely by chance. So, higher the t-value, the better.
+
+Pr(>|t|) or p-value is the probability that you get a t-value as high or higher than the observed value when the Null Hypothesis (the ?? coefficient is equal to zero or that there is no relationship) is true.
+
+So if the Pr(>|t|) is low, the coefficients are significant (significantly different from zero). If the Pr(>|t|) is high, the coefficients are not significant.
+
+
+When p Value is less than significance level (< 0.05), you can safely reject the null hypothesis that the co-efficient ?? of the predictor is zero.
+
+
+In our case,  both these p-Values are well below the 0.05 threshold. So, you can reject the null hypothesis and conclude the model is indeed statistically significant.
+
+##Linear Model Statistics
+```{r}
+
+#store the model summary as an object
+lm_summary<-summary(linear_model)
+
+# model coefficients
+lm_coeff <- lm_summary$coefficients  
+
+# get beta estimate for speed
+beta.estimate <- lm_coeff["speed", "Estimate"]
+
+# get std.error for speed  
+std.error <- lm_coeff["speed", "Std. Error"]  
+
+# calculate t statistic
+t_value <- beta.estimate/std.error  
+
+# calculate p-Value
+p_value <- 2*pt(-abs(t_value), df=nrow(cars)-ncol(cars))  
+
+```
+
+##R2 and Adjusted-R2
+
+R-Squared tells us the proportion of variation in the dependent (response) variable that has been explained by the linear model.
+
+As you add more X variables to your model, the R-Squared value of the new bigger model will always be greater than that of the smaller subset.
+
+Adjusted R-Squared is formulated such that it penalises the number of terms (read predictors) in your model.
+
+It is a good practice to compare using adj-R-squared rather than just R-squared.
+
+```{r}
+summary(linear_model)
+```
+##Predicting by using Linear Model
+
+```{r}
+
+#Create training and test dataset
+
+set.seed(100)  # setting seed to reproduce results of random sampling
+
+rowindex <- sample(1:nrow(cars), 0.8*nrow(cars))  # row indices for training data
+train <- cars[rowindex, ]  # training data
+test  <- cars[-rowindex, ]   # test data
+
+```
+
+```{r}
+# Build the model on training data
+
+linear_model_2 <- lm(dist ~ speed, data=train)  # building the model
+pred <- predict(linear_model_2, test)  # predict distance
+
+```
+
+```{r}
+#look at the summary results for training
+summary(linear_model_2)
+
+```
+
+```{r}
+
+#create a dataframe that compares actuals and predicted values
+actual_pred <- data.frame(cbind(actual=test$dist, predicted=pred))
+
+#calc correlation accuracy
+correlation_accuracy <- cor(actual_pred)
+correlation_accuracy
+
+```
+
+```{r}
+#Calculate errors
+#install.packages("bitops",repos="https://cran.r-project.org/bin/windows/contrib/3.3/bitops_1.0-6.zip",dependencies=TRUE,type="source") 
+#install.packages('DMwR')
+library(DMwR)
+
+error_eval<-regr.eval(actual_pred$actual, actual_pred$predicted)
+error_eval
+```
+
